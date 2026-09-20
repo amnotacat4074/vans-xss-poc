@@ -1,0 +1,7 @@
+# local/host state -- never publish
+base.txt
+*.log
+*.pid
+.DS_Store
+node_modules/
+__pycache__/
