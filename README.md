@@ -97,6 +97,18 @@ and that the JSON/SVG bodies contain the rewritten base, the inline `onerror`
 handler, `alert('XSS on '`, the `__XSS_FIRED` marker, the `position:fixed` overlay
 and the `<BASE>/fired?d=` beacon.
 
+> NOTE: that standalone `verify.sh` targets the original `alert()` variant. After
+> the impact-payload change (section 8) use the verifier shipped **here**:
+>
+> ```bash
+> ./tools/verify_public.sh https://raw.githubusercontent.com/<user>/<repo>/<branch>
+> ```
+>
+> It checks the new markers - `XSS EXFILTRATION PROOF`, `__EXFIL_RAN`,
+> the `window.top` / `localStorage` harvest and the OOB beacon - for the 3 SVGs
+> plus `200` + `ACAO:*` + asset keys for the endpoints/config JSON (10/10 PASS
+> against the published base).
+
 ## 6. What success looks like in the browser
 
 Open a delivery URL in a browser (Burp browser works). You should see:
