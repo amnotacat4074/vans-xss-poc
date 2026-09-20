@@ -77,7 +77,7 @@ for p in "${SVGS[@]}"; do
   grep -q '__NUXT__'                 "$TMP" || why="$why no-nuxt"
   grep -q 'position:fixed'           "$TMP" || why="$why no-overlay"
   grep -q 'fetch(EXFIL'              "$TMP" || why="$why no-exfil-fetch"
-  grep -qE 'oast\.|webhook\.site|interactsh|oastify|/fired\?d=' "$TMP" || why="$why no-beacon"
+  grep -qE 'pipedream\.net|webhook\.site|/fired\?d=' "$TMP" || why="$why no-beacon"
   [ -z "$why" ] && report "$p" 1 "200 acao=* impact-markers" || report "$p" 0 "$why"
 done
 

